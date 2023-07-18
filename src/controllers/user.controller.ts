@@ -21,6 +21,7 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
+import IsEmail from 'isemail';
 import {User} from '../models';
 import {UserRepository} from '../repositories';
 import {HashingService} from '../services';
@@ -39,8 +40,10 @@ export class UserController {
     @post('/users/register')
     @response(200)
     async register(@requestBody() newUser :User):Promise<object>{
+      if(IsEmail.validate(newUser.email) == false) throw new HttpErrors.UnprocessableEntity('Invalid email')
+      if(newUser.password.length < 8) throw new HttpErrors.UnprocessableEntity('Password must be minimum 8 characters')
       const user = await this.userRepository.findOne({where:{email:newUser.email}})
-      if(user) throw new HttpErrors.BadRequest('Username already exists')
+      if(user) throw new HttpErrors.BadRequest('Email already exists')
       newUser.password = await this.hash.hashPass(newUser.password)
       const {password,...data} = await this.userRepository.create(newUser)
       if(!data) throw new HttpErrors.BadGateway('Database error')
@@ -50,7 +53,7 @@ export class UserController {
     @post('/user/login')
     @response(200)
     async login(@requestBody() loginUser:LoginUser):Promise<object>{
-      Object.defineProperty(this, 'password', { enumerable: true });
+      Object.defineProperty(this.constructor.prototype, 'password', { enumerable: true });
       const user = await this.userRepository.findOne({where:{email:loginUser.email}})
       if(!user) throw new HttpErrors.BadRequest('User not found')
       await this.hash.checkPass(loginUser.password,user.password)

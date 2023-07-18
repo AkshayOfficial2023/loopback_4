@@ -21,6 +21,7 @@ export class DemoApplication extends BootMixin(
   constructor(options: ApplicationConfig = {}) {
     super(options);
 
+
     this.component(AuthenticationComponent)
     this.component(JWTAuthenticationComponent)
 

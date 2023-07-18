@@ -60,6 +60,7 @@
     "@loopback/security": "^0.10.1",
     "@loopback/service-proxy": "^6.1.1",
     "bcrypt": "^5.1.0",
+    "isemail": "^3.2.0",
     "loopback-connector-mongodb": "^5.6.0",
     "tslib": "^2.0.0"
   },
