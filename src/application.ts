@@ -1,7 +1,7 @@
 import {AuthenticationComponent} from '@loopback/authentication';
 import {JWTAuthenticationComponent} from '@loopback/authentication-jwt';
 import {BootMixin} from '@loopback/boot';
-import {ApplicationConfig} from '@loopback/core';
+import {ApplicationConfig, BindingScope} from '@loopback/core';
 import {RepositoryMixin} from '@loopback/repository';
 import {RestApplication} from '@loopback/rest';
 import {
@@ -11,7 +11,7 @@ import {
 import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
 import {MySequence} from './sequence';
-import {HashingService} from './services';
+import {DemoProvider, HashingService, StoreService} from './services';
 
 export {ApplicationConfig};
 
@@ -21,11 +21,16 @@ export class DemoApplication extends BootMixin(
   constructor(options: ApplicationConfig = {}) {
     super(options);
 
+    this.component(AuthenticationComponent);
+    this.component(JWTAuthenticationComponent);
 
-    this.component(AuthenticationComponent)
-    this.component(JWTAuthenticationComponent)
-
-    this.bind('HashPass').toClass(HashingService)
+    this.bind('HashPass')
+      .toClass(HashingService)
+      .inScope(BindingScope.SINGLETON);
+    this.bind('DemoProvider')
+      .toClass(DemoProvider)
+      .inScope(BindingScope.SINGLETON);
+    this.bind('services.store').toClass(StoreService);
 
     // Set up the custom sequence
     this.sequence(MySequence);

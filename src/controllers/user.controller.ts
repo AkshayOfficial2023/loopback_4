@@ -1,5 +1,9 @@
 import {TokenService, authenticate} from '@loopback/authentication';
-import {MyUserService, TokenServiceBindings, UserServiceBindings} from '@loopback/authentication-jwt';
+import {
+  MyUserService,
+  TokenServiceBindings,
+  UserServiceBindings,
+} from '@loopback/authentication-jwt';
 import {inject} from '@loopback/core';
 import {
   Count,
@@ -24,45 +28,69 @@ import {
 import IsEmail from 'isemail';
 import {User} from '../models';
 import {UserRepository} from '../repositories';
-import {HashingService} from '../services';
+import {DemoProvider, HashingService} from '../services';
 
 export class UserController {
   constructor(
     @repository(UserRepository)
-    public userRepository : UserRepository,
-    @inject('HashPass') public hash:HashingService,
+    public userRepository: UserRepository,
+    @inject('HashPass') public hash: HashingService,
     @inject(TokenServiceBindings.TOKEN_SERVICE) public jwtService: TokenService,
-    @inject(UserServiceBindings.USER_SERVICE) public userService:MyUserService,
+    @inject(UserServiceBindings.USER_SERVICE) public userService: MyUserService,
+    @inject('DemoProvider') public demo: DemoProvider,
   ) {}
 
+  // third party api call method using service
+  @get('/users/product')
+  @response(200)
+  async getProducts() {
+    const data = await this.demo.value();
+    return data;
+  }
 
+  @post('/users/register')
+  @response(200)
+  async register(@requestBody() newUser: User): Promise<object> {
+    if (IsEmail.validate(newUser.email) == false)
+      throw new HttpErrors.UnprocessableEntity('Invalid email');
+    if (newUser.password.length < 8)
+      throw new HttpErrors.UnprocessableEntity(
+        'Password must be minimum 8 characters',
+      );
+    const user = await this.userRepository.findOne({
+      where: {email: newUser.email},
+    });
+    if (user) throw new HttpErrors.BadRequest('Email already exists');
+    newUser.password = await this.hash.hashPass(newUser.password);
+    const {password, ...data} = await this.userRepository.create(newUser);
+    if (!data) throw new HttpErrors.BadGateway('Database error');
+    return {message: 'Successful', data: data};
+  }
 
-    @post('/users/register')
-    @response(200)
-    async register(@requestBody() newUser :User):Promise<object>{
-      if(IsEmail.validate(newUser.email) == false) throw new HttpErrors.UnprocessableEntity('Invalid email')
-      if(newUser.password.length < 8) throw new HttpErrors.UnprocessableEntity('Password must be minimum 8 characters')
-      const user = await this.userRepository.findOne({where:{email:newUser.email}})
-      if(user) throw new HttpErrors.BadRequest('Email already exists')
-      newUser.password = await this.hash.hashPass(newUser.password)
-      const {password,...data} = await this.userRepository.create(newUser)
-      if(!data) throw new HttpErrors.BadGateway('Database error')
-      return {"message":"Successful","data":data}
-    }
+  @post('/user/login')
+  @response(200)
+  async login(@requestBody() loginUser: LoginUser): Promise<object> {
+    Object.defineProperty(this.constructor.prototype, 'password', {
+      enumerable: true,
+    });
+    const user = await this.userRepository.findOne({
+      where: {email: loginUser.email},
+    });
+    if (!user) throw new HttpErrors.BadRequest('User not found');
+    await this.hash.checkPass(loginUser.password, user.password);
+    const token = await this.jwtService.generateToken(user);
+    return {message: 'Successful', data: {user, token}};
+  }
 
-    @post('/user/login')
-    @response(200)
-    async login(@requestBody() loginUser:LoginUser):Promise<object>{
-      Object.defineProperty(this.constructor.prototype, 'password', { enumerable: true });
-      const user = await this.userRepository.findOne({where:{email:loginUser.email}})
-      if(!user) throw new HttpErrors.BadRequest('User not found')
-      await this.hash.checkPass(loginUser.password,user.password)
-      const token = await this.jwtService.generateToken(user)
-      return {"message":"Successful","data":{user,token}}
-    }
+  @get('/user/{id}')
+  @response(200)
+  async getUser(@param.path.string('id') id: string): Promise<object> {
+    const user = await this.userRepository.findById(id);
+    if (!user) throw new HttpErrors.NotFound('User not found');
+    return {message: 'Successful', data: user};
+  }
 
-
-    @authenticate('jwt')
+  @authenticate('jwt')
   @post('/users')
   @response(200, {
     description: 'User model instance',
@@ -89,9 +117,7 @@ export class UserController {
     description: 'User model count',
     content: {'application/json': {schema: CountSchema}},
   })
-  async count(
-    @param.where(User) where?: Where<User>,
-  ): Promise<Count> {
+  async count(@param.where(User) where?: Where<User>): Promise<Count> {
     return this.userRepository.count(where);
   }
 
@@ -107,9 +133,7 @@ export class UserController {
       },
     },
   })
-  async find(
-    @param.filter(User) filter?: Filter<User>,
-  ): Promise<User[]> {
+  async find(@param.filter(User) filter?: Filter<User>): Promise<User[]> {
     return this.userRepository.find(filter);
   }
 
@@ -143,7 +167,7 @@ export class UserController {
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(User, {exclude: 'where'}) filter?: FilterExcludingWhere<User>
+    @param.filter(User, {exclude: 'where'}) filter?: FilterExcludingWhere<User>,
   ): Promise<User> {
     return this.userRepository.findById(id, filter);
   }
@@ -186,8 +210,7 @@ export class UserController {
   }
 }
 
-
-export interface LoginUser{
-  email:string;
-  password:string
+export interface LoginUser {
+  email: string;
+  password: string;
 }
