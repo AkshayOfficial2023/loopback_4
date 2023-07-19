@@ -1,5 +1,7 @@
 import {/* inject, */ BindingScope, Provider, injectable} from '@loopback/core';
+import {HttpErrors} from '@loopback/rest';
 import axios from 'axios';
+import {ERRORS} from '../constants/error.messages';
 
 /*
  * Fix the service type. Possible options can be:
@@ -23,6 +25,24 @@ export class DemoProvider implements Provider<Demo> {
       });
     } catch (err) {
       console.log(err);
+    }
+  }
+
+  async getWeather(city: string) {
+    const options = {
+      method: 'GET',
+      url: `https://open-weather13.p.rapidapi.com/city/${city}`,
+      headers: {
+        'X-RapidAPI-Key': '63dcb6905cmsh34395f4050dbf3cp1e2689jsnab8a4823c4a9',
+        'X-RapidAPI-Host': 'open-weather13.p.rapidapi.com',
+      },
+    };
+
+    try {
+      const response = await axios.request(options);
+      return response.data;
+    } catch (error) {
+      throw new HttpErrors.NotFound(ERRORS.FAILED_FETCH);
     }
   }
 }

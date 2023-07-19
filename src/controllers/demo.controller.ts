@@ -18,13 +18,14 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
+import {ERRORS} from '../constants/error.messages';
 import {Demo} from '../models';
 import {DemoRepository} from '../repositories';
 
 export class DemoController {
   constructor(
     @repository(DemoRepository)
-    public demoRepository : DemoRepository,
+    public demoRepository: DemoRepository,
   ) {}
 
   @post('/demos')
@@ -45,11 +46,11 @@ export class DemoController {
     })
     demo: Omit<Demo, 'id'>,
   ): Promise<any> {
-      const name = await this.demoRepository.findOne({where:{name:demo.name}})
-      if(name) throw new HttpErrors.BadRequest('Username already exists')
-      const data = this.demoRepository.create(demo);
-      if(!data) throw new HttpErrors.BadGateway('Database error')
-      return {'message':'successful','data':data}
+    const name = await this.demoRepository.findOne({where: {name: demo.name}});
+    if (name) throw new HttpErrors.BadRequest(ERRORS.EXISTING_USERNAME);
+    const data = this.demoRepository.create(demo);
+    if (!data) throw new HttpErrors.BadGateway(ERRORS.DATABASE_ERROR);
+    return {message: 'successful', data: data};
   }
 
   @get('/demos/count')
@@ -57,17 +58,15 @@ export class DemoController {
     description: 'Demo model count',
     content: {'application/json': {schema: CountSchema}},
   })
-  async count(
-    @param.where(Demo) where?: Where<Demo>,
-  ): Promise<Count> {
+  async count(@param.where(Demo) where?: Where<Demo>): Promise<Count> {
     return this.demoRepository.count(where);
   }
 
   @get('/all')
   @response(200)
-  async getAll():Promise<object>{
-    const data = await this.demoRepository.find()
-    return {'message':'successful','data':data}
+  async getAll(): Promise<object> {
+    const data = await this.demoRepository.find();
+    return {message: 'successful', data: data};
   }
 
   @get('/demos')
@@ -82,9 +81,7 @@ export class DemoController {
       },
     },
   })
-  async find(
-    @param.filter(Demo) filter?: Filter<Demo>,
-  ): Promise<Demo[]> {
+  async find(@param.filter(Demo) filter?: Filter<Demo>): Promise<Demo[]> {
     return this.demoRepository.find(filter);
   }
 
@@ -118,7 +115,7 @@ export class DemoController {
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(Demo, {exclude: 'where'}) filter?: FilterExcludingWhere<Demo>
+    @param.filter(Demo, {exclude: 'where'}) filter?: FilterExcludingWhere<Demo>,
   ): Promise<Demo> {
     return this.demoRepository.findById(id, filter);
   }

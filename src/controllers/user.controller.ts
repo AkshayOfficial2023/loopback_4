@@ -26,6 +26,8 @@ import {
   response,
 } from '@loopback/rest';
 import IsEmail from 'isemail';
+import {ERRORS} from '../constants/error.messages';
+import {SUCCESS} from '../constants/success.message';
 import {User} from '../models';
 import {UserRepository} from '../repositories';
 import {DemoProvider, HashingService} from '../services';
@@ -45,26 +47,31 @@ export class UserController {
   @response(200)
   async getProducts() {
     const data = await this.demo.value();
-    return data;
+    return {message: SUCCESS.SUCCESS, data: data};
+  }
+
+  @get('/users/weather/{city}')
+  @response(200)
+  async getWeatherData(@param.path.string('city') city: string) {
+    const data = await this.demo.getWeather(city);
+    return {message: SUCCESS.SUCCESS, data: data};
   }
 
   @post('/users/register')
   @response(200)
   async register(@requestBody() newUser: User): Promise<object> {
     if (IsEmail.validate(newUser.email) == false)
-      throw new HttpErrors.UnprocessableEntity('Invalid email');
+      throw new HttpErrors.UnprocessableEntity(ERRORS.INVALID_EMAIL);
     if (newUser.password.length < 8)
-      throw new HttpErrors.UnprocessableEntity(
-        'Password must be minimum 8 characters',
-      );
-    const user = await this.userRepository.findOne({
+      throw new HttpErrors.UnprocessableEntity(ERRORS.INVALID_PASSWORD_LENGTH);
+    const userFound = await this.userRepository.findOne({
       where: {email: newUser.email},
     });
-    if (user) throw new HttpErrors.BadRequest('Email already exists');
+    if (userFound) throw new HttpErrors.BadRequest(ERRORS.EXISTING_EMAIL);
     newUser.password = await this.hash.hashPass(newUser.password);
     const {password, ...data} = await this.userRepository.create(newUser);
-    if (!data) throw new HttpErrors.BadGateway('Database error');
-    return {message: 'Successful', data: data};
+    if (!data) throw new HttpErrors.BadGateway(ERRORS.DATABASE_ERROR);
+    return {message: SUCCESS.SUCCESS, data: data};
   }
 
   @post('/user/login')
@@ -76,18 +83,18 @@ export class UserController {
     const user = await this.userRepository.findOne({
       where: {email: loginUser.email},
     });
-    if (!user) throw new HttpErrors.BadRequest('User not found');
+    if (!user) throw new HttpErrors.BadRequest(ERRORS.USER_NOTFOUND);
     await this.hash.checkPass(loginUser.password, user.password);
     const token = await this.jwtService.generateToken(user);
-    return {message: 'Successful', data: {user, token}};
+    return {message: SUCCESS.SUCCESS, data: {user, token}};
   }
 
   @get('/user/{id}')
   @response(200)
   async getUser(@param.path.string('id') id: string): Promise<object> {
     const user = await this.userRepository.findById(id);
-    if (!user) throw new HttpErrors.NotFound('User not found');
-    return {message: 'Successful', data: user};
+    if (!user) throw new HttpErrors.NotFound(ERRORS.USER_NOTFOUND);
+    return {message: SUCCESS.SUCCESS, data: user};
   }
 
   @authenticate('jwt')

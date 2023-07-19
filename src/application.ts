@@ -24,13 +24,8 @@ export class DemoApplication extends BootMixin(
     this.component(AuthenticationComponent);
     this.component(JWTAuthenticationComponent);
 
-    this.bind('HashPass')
-      .toClass(HashingService)
-      .inScope(BindingScope.SINGLETON);
-    this.bind('DemoProvider')
-      .toClass(DemoProvider)
-      .inScope(BindingScope.SINGLETON);
-    this.bind('services.store').toClass(StoreService);
+    // set up application bindings
+    this.setupBindings();
 
     // Set up the custom sequence
     this.sequence(MySequence);
@@ -54,5 +49,16 @@ export class DemoApplication extends BootMixin(
         nested: true,
       },
     };
+  }
+
+  // Group all bindings
+  setupBindings() {
+    this.bind('HashPass')
+      .toClass(HashingService)
+      .inScope(BindingScope.SINGLETON);
+    this.bind('DemoProvider')
+      .toClass(DemoProvider)
+      .inScope(BindingScope.SINGLETON);
+    this.bind('services.store').toClass(StoreService);
   }
 }
