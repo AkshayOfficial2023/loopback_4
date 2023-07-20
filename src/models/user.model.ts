@@ -31,6 +31,15 @@ export class User extends Entity {
   })
   password: string;
 
+  @property({
+    type: 'string',
+    required: true,
+    jsonSchema: {
+      enum: ['male', 'female', 'other'],
+    },
+  })
+  gender: string;
+
   constructor(data?: Partial<User>) {
     super(data);
   }

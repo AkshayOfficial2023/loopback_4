@@ -10,6 +10,7 @@ import {
 } from '@loopback/rest-explorer';
 import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
+import {MyInterceptorProvider} from './interceptors/logger.interceptor';
 import {MySequence} from './sequence';
 import {DemoProvider, HashingService, StoreService} from './services';
 
@@ -24,6 +25,7 @@ export class DemoApplication extends BootMixin(
     this.component(AuthenticationComponent);
     this.component(JWTAuthenticationComponent);
 
+    this.bind('interceptors.my-interceptor').toClass(MyInterceptorProvider);
     // set up application bindings
     this.setupBindings();
 
