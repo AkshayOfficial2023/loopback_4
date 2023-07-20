@@ -40,6 +40,18 @@ export class User extends Entity {
   })
   gender: string;
 
+  @property({
+    type: 'date',
+    default: () => new Date(),
+  })
+  created: Date;
+
+  @property({
+    type: 'date',
+    default: () => new Date(),
+  })
+  updated: Date;
+
   constructor(data?: Partial<User>) {
     super(data);
   }

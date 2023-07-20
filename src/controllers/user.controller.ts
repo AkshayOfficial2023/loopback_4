@@ -119,6 +119,32 @@ export class UserController {
     return this.userRepository.create(user);
   }
 
+  @get('/users/demo')
+  @response(200)
+  async demoGet(
+    @param.query.string('from') from?: Date,
+    @param.query.string('to') to?: Date,
+    @param.query.string('limit') limit?: number,
+    @param.query.string('skip') skip?: number,
+    @param.query.string('id') id?: string,
+  ) {
+    const filter = {
+      where: {
+        id: id,
+        created: {
+          gte: from,
+          lte: to,
+        },
+      },
+      limit: limit,
+      skip: skip,
+    };
+    const data = await this.userRepository.find(filter);
+    console.log(data);
+
+    return {message: SUCCESS.SUCCESS, data: data};
+  }
+
   @get('/users/count')
   @response(200, {
     description: 'User model count',
@@ -159,8 +185,9 @@ export class UserController {
     })
     user: User,
     @param.where(User) where?: Where<User>,
-  ): Promise<Count> {
-    return this.userRepository.updateAll(user, where);
+  ): Promise<any> {
+    const data = this.userRepository.updateAll(user, where);
+    return data;
   }
 
   @get('/users/{id}')
@@ -220,4 +247,12 @@ export class UserController {
 export interface LoginUser {
   email: string;
   password: string;
+}
+
+export interface iDemo {
+  id: string;
+  from?: Date;
+  to?: Date;
+  limit: number;
+  skip: number;
 }
